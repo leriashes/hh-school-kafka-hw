@@ -7,6 +7,7 @@ import ru.hh.kafkahw.internal.KafkaProducer;
 @Component
 public class Sender {
   private final KafkaProducer producer;
+  private static final int MAX_RETRIES = 100;
 
   @Autowired
   public Sender(KafkaProducer producer) {
@@ -14,9 +15,20 @@ public class Sender {
   }
 
   public void doSomething(String topic, String message) {
-    try {
-      producer.send(topic, message);
-    } catch (Exception ignore) {
+    int attempt = 0;
+    while (attempt < MAX_RETRIES)
+    {
+      try {
+        producer.send(topic, message);
+        break;
+      } catch (Exception ignore) {
+        attempt++;
+        try {
+          Thread.sleep(100L * attempt);
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+        }
+      }
     }
   }
 }
